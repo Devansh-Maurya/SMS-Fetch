@@ -1,6 +1,7 @@
 package maurya.devansh.smsfetch
 
 import android.Manifest
+import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.firestore.ktx.firestore
@@ -11,15 +12,22 @@ import org.jetbrains.anko.toast
 
 class MainActivity : AppCompatActivity() {
 
-    val firestore = Firebase.firestore
+    private val firestore = Firebase.firestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        getSmsReadPermission {
+            readAndStoreSms()
+        }
+    }
+
+    private fun getSmsReadPermission(action: () -> Unit) {
         val permissionListener = object : PermissionListener {
             override fun onPermissionGranted() {
                 toast("Permission granted")
+                action()
             }
 
             override fun onPermissionDenied(deniedPermissions: List<String>) {
@@ -35,4 +43,24 @@ class MainActivity : AppCompatActivity() {
             .check()
     }
 
+    private fun readAndStoreSms() {
+
+        val smsList = arrayListOf<Sms>()
+
+        val uri = Uri.parse("content://sms/inbox")
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        startManagingCursor(cursor)
+
+        if (cursor?.moveToFirst() == true) {
+            for (i in 0 until cursor.count) {
+                val body = cursor.getString(cursor.getColumnIndexOrThrow("body")).toString()
+                val address = cursor.getShort(cursor.getColumnIndexOrThrow("address")).toString()
+                smsList.add(Sms(address, body))
+
+                cursor.moveToNext()
+            }
+        }
+        cursor?.close()
+
+    }
 }
