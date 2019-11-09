@@ -39,6 +39,12 @@ dependencies {
     //Firestore KTX
     implementation 'com.google.firebase:firebase-firestore-ktx:21.2.1'
 
+    //TedPermissions
+    implementation 'gun0912.ted:tedpermission:2.2.2'
+
+    //Anko Commons
+    implementation "org.jetbrains.anko:anko-commons:0.10.8"
+
 }
 
 apply plugin: 'com.google.gms.google-services'
