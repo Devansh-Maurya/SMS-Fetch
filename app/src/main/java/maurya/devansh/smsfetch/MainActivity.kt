@@ -16,6 +16,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
+import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.toast
 
 
@@ -32,10 +33,16 @@ class MainActivity : AppCompatActivity() {
 
         getSmsReadPermission {
             val smsList = getSmsList()
+            numberTV.text = smsList.size.toString()
+            descriptionTV.text = getString(R.string.sms_messages)
+
             val enSmsList = arrayListOf<String>()
 
             identifySmsLanguage(smsList, enSmsList).observe(this, Observer {
                 if (it == smsList.size) {
+                    numberEnTV.text = enSmsList.size.toString()
+                    descriptionEnTV.text = getString(R.string.english_messages)
+
                     if (!prefs.getBoolean(SMS_STORED, false)) {
                         storeSmsInDB(enSmsList, prefs)
                         Log.i("SMS", enSmsList.toString())
@@ -133,5 +140,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         return smsCountLiveData
+    }
+
+    private fun updateUI(number: String, description: String) {
+        numberTV.text = number
+        descriptionTV.text = description
     }
 }

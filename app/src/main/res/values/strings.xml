@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">SMS Fetch</string>
+    <string name="sms_messages">SMS messages</string>
+    <string name="english_messages">English messages</string>
 </resources>
