@@ -5,13 +5,19 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import org.jetbrains.anko.toast
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,11 +32,18 @@ class MainActivity : AppCompatActivity() {
 
         getSmsReadPermission {
             val smsList = getSmsList()
+            val enSmsList = arrayListOf<String>()
 
-            if (!prefs.getBoolean(SMS_STORED, false))
-                storeSmsInDB(smsList, prefs)
-            else
-                toast("All messages are already stored in the database!")
+            identifySmsLanguage(smsList, enSmsList).observe(this, Observer {
+                if (it == smsList.size) {
+                    if (!prefs.getBoolean(SMS_STORED, false)) {
+                        storeSmsInDB(enSmsList, prefs)
+                        Log.i("SMS", enSmsList.toString())
+                    }
+                    else
+                        toast("All messages are already stored in the database!")
+                }
+            })
         }
     }
 
@@ -64,10 +77,7 @@ class MainActivity : AppCompatActivity() {
 
         if (cursor?.moveToFirst() == true) {
             for (i in 0 until cursor.count) {
-                val body = cursor.getString(cursor.getColumnIndexOrThrow("body")).toString()
-                //val address = cursor.getShort(cursor.getColumnIndexOrThrow("address")).toString()
-                smsList.add(body)
-
+                smsList.add(cursor.getString(cursor.getColumnIndexOrThrow("body")).toString())
                 cursor.moveToNext()
             }
         }
@@ -90,5 +100,38 @@ class MainActivity : AppCompatActivity() {
             .addOnFailureListener {
                 toast("Failed to store messages: $it")
             }
+    }
+
+    private fun identifySmsLanguage(smsList: List<String>, enSmsList: ArrayList<String>): LiveData<Int> {
+        val smsCountLiveData = MutableLiveData<Int>()
+        smsCountLiveData.value = 0
+
+        val languageIdentifier = FirebaseNaturalLanguage.getInstance().languageIdentification
+        smsList.forEach {
+            languageIdentifier.identifyLanguage(it)
+                .addOnSuccessListener { languageCode ->
+                    synchronized (smsCountLiveData) {
+                        if (languageCode == "en") {
+                            Log.i("SMS", "Language: $languageCode")
+                            enSmsList.add(it)
+                        } else {
+                            Log.i("SMS", "Message not in English")
+                        }
+                        smsCountLiveData.apply {
+                            value = value?.plus(1)
+                        }
+                    }
+                }
+                .addOnFailureListener {
+                    Log.e("SMS", "Failed in language identification: $it")
+                    synchronized(smsCountLiveData) {
+                        smsCountLiveData.apply {
+                            value = value?.plus(1)
+                        }
+                    }
+                }
+        }
+
+        return smsCountLiveData
     }
 }

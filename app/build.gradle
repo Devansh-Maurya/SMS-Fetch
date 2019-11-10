@@ -45,6 +45,10 @@ dependencies {
     //Anko Commons
     implementation "org.jetbrains.anko:anko-commons:0.10.8"
 
+    //MLKit Language Identification libraries
+    implementation 'com.google.firebase:firebase-ml-natural-language:22.0.0'
+    implementation 'com.google.firebase:firebase-ml-natural-language-language-id-model:20.0.7'
+
 }
 
 apply plugin: 'com.google.gms.google-services'
