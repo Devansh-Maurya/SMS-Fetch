@@ -1,9 +1,12 @@
 package maurya.devansh.smsfetch
 
 import android.Manifest
+import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.gun0912.tedpermission.PermissionListener
@@ -13,14 +16,21 @@ import org.jetbrains.anko.toast
 class MainActivity : AppCompatActivity() {
 
     private val db = Firebase.firestore
+    private val SMS_STORED = "sms_stored"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        val prefs = getSharedPreferences("maurya.devansh.smsfetch", Context.MODE_PRIVATE)
+
         getSmsReadPermission {
             val smsList = getSmsList()
-            storeSmsInDB(smsList)
+
+            if (!prefs.getBoolean(SMS_STORED, false))
+                storeSmsInDB(smsList, prefs)
+            else
+                toast("All messages are already stored in the database!")
         }
     }
 
@@ -62,21 +72,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
         cursor?.close()
-
         return smsList
     }
 
-    private fun storeSmsInDB(smsList: List<String>) {
+    private fun storeSmsInDB(smsList: List<String>, prefs: SharedPreferences) {
 
         val smsMap = mutableMapOf<String, List<String>>()
         smsMap["sms"] = smsList
 
         db.collection("sms").add(smsMap)
             .addOnSuccessListener {
-                toast("Messages stored successfully")
+                toast("${smsList.size} messages stored successfully")
+                prefs.edit {
+                    putBoolean(SMS_STORED, true)
+                }
             }
             .addOnFailureListener {
-                toast("Failed to store SMS: $it")
+                toast("Failed to store messages: $it")
             }
     }
 }
