@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.lifecycle.LiveData
@@ -14,21 +15,26 @@ import androidx.lifecycle.Observer
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage
+import com.google.firebase.storage.FirebaseStorage
+import com.google.gson.Gson
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.toast
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileWriter
 
 
 class MainActivity : AppCompatActivity() {
 
     private val db = Firebase.firestore
+    private val storage = FirebaseStorage.getInstance()
     private val SMS_STORED = "sms_stored"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         val prefs = getSharedPreferences("maurya.devansh.smsfetch", Context.MODE_PRIVATE)
 
         getSmsReadPermission {
@@ -44,6 +50,11 @@ class MainActivity : AppCompatActivity() {
                     descriptionEnTV.text = getString(R.string.english_messages)
 
                     if (!prefs.getBoolean(SMS_STORED, false)) {
+                        sendSmsButton.isEnabled = true
+                        sendSmsButton.setOnClickListener {
+                            sendSmsJson(enSmsList)
+                            Toast.makeText(this@MainActivity, "Sending sms", Toast.LENGTH_SHORT).show()
+                        }
                         storeSmsInDB(enSmsList, prefs)
                         Log.i("SMS", enSmsList.toString())
                     }
@@ -106,6 +117,23 @@ class MainActivity : AppCompatActivity() {
             }
             .addOnFailureListener {
                 toast("Failed to store messages: $it")
+            }
+    }
+
+    private fun sendSmsJson(smsList: List<String>) {
+        val fileName = "sms" + (Math.random()*1000).toInt() + ".json"
+        val file = File(filesDir, fileName)
+        Gson().toJson(smsList, FileWriter(file))
+        val stream = FileInputStream(file)
+
+        val storageRef = storage.reference
+        val smsJsonRef = storageRef.child(fileName)
+        smsJsonRef.putStream(stream)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Upload success", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener {
+                Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
             }
     }
 
