@@ -2,11 +2,13 @@ package maurya.devansh.smsfetch
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
+import android.graphics.Color
+import android.graphics.PorterDuff
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LiveData
@@ -27,12 +29,12 @@ import java.io.FileWriter
 class MainActivity : AppCompatActivity() {
 
     private val storage = FirebaseStorage.getInstance()
-    private val SMS_STORED = "sms_stored"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val prefs = getSharedPreferences("maurya.devansh.smsfetch", Context.MODE_PRIVATE)
+
+        sendSmsButton.disable()
 
         getSmsReadPermission {
             val smsList = getSmsList()
@@ -45,11 +47,11 @@ class MainActivity : AppCompatActivity() {
                 if (it == smsList.size) {
                     numberEnTV.text = enSmsList.size.toString()
                     descriptionEnTV.text = getString(R.string.english_messages)
-
-                    sendSmsButton.isEnabled = true
+                    sendSmsButton.enable()
                     sendSmsButton.setOnClickListener {
-                        sendSmsJson(enSmsList)
-                        Toast.makeText(this@MainActivity, "Sending sms", Toast.LENGTH_SHORT).show()
+                        uploadSmsJson(enSmsList)
+                        Toast.makeText(this@MainActivity, "Uploading messages",
+                            Toast.LENGTH_SHORT).show()
                     }
                     Log.i("SMS", enSmsList.toString())
                 }
@@ -96,7 +98,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("HardwareIds")
-    private fun sendSmsJson(smsList: List<String>) {
+    private fun uploadSmsJson(smsList: List<String>) {
 
         val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
 
@@ -150,8 +152,13 @@ class MainActivity : AppCompatActivity() {
         return smsCountLiveData
     }
 
-    private fun updateUI(number: String, description: String) {
-        numberTV.text = number
-        descriptionTV.text = description
+    private fun Button.disable() {
+        background.setColorFilter(Color.GRAY, PorterDuff.Mode.SRC_IN)
+        isEnabled = false
+    }
+
+    private fun Button.enable() {
+        background.colorFilter = null
+        isEnabled = true
     }
 }
