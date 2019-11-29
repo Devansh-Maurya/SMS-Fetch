@@ -3,19 +3,15 @@ package maurya.devansh.smsfetch
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.edit
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage
 import com.google.firebase.storage.FirebaseStorage
 import com.google.gson.GsonBuilder
@@ -30,7 +26,6 @@ import java.io.FileWriter
 
 class MainActivity : AppCompatActivity() {
 
-    private val db = Firebase.firestore
     private val storage = FirebaseStorage.getInstance()
     private val SMS_STORED = "sms_stored"
 
@@ -51,16 +46,12 @@ class MainActivity : AppCompatActivity() {
                     numberEnTV.text = enSmsList.size.toString()
                     descriptionEnTV.text = getString(R.string.english_messages)
 
-                    if (!prefs.getBoolean(SMS_STORED, false)) {
-                        sendSmsButton.isEnabled = true
-                        sendSmsButton.setOnClickListener {
-                            sendSmsJson(enSmsList)
-                            Toast.makeText(this@MainActivity, "Sending sms", Toast.LENGTH_SHORT).show()
-                        }
-                        Log.i("SMS", enSmsList.toString())
+                    sendSmsButton.isEnabled = true
+                    sendSmsButton.setOnClickListener {
+                        sendSmsJson(enSmsList)
+                        Toast.makeText(this@MainActivity, "Sending sms", Toast.LENGTH_SHORT).show()
                     }
-                    else
-                        toast("All messages are already stored in the database!")
+                    Log.i("SMS", enSmsList.toString())
                 }
             })
         }
@@ -111,6 +102,7 @@ class MainActivity : AppCompatActivity() {
 
         val fileName = "sms$androidId.json"
         val file = File(filesDir, fileName)
+
         GsonBuilder().setPrettyPrinting().create().toJson(smsList, FileWriter(file))
         val stream = FileInputStream(file)
 
