@@ -100,11 +100,10 @@ class MainActivity : AppCompatActivity() {
     private fun uploadSmsCsv(smsList: List<String>) {
 
         val smsAsCsv = StringBuilder()
+        val smsSet = HashSet(smsList)
 
-        smsAsCsv.append("\"${smsList[0]}\"")
-        for(i in 1 until smsList.size) {
-            if (smsList[i].isBlank()) break
-            smsAsCsv.append("\n\"${smsList[i]}\"")
+        smsSet.forEach {
+            smsAsCsv.append("\"${it.trim()}\"\n")
         }
 
         val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
@@ -123,6 +122,7 @@ class MainActivity : AppCompatActivity() {
         smsJsonRef.putStream(stream)
             .addOnSuccessListener {
                 Toast.makeText(this, "Upload success", Toast.LENGTH_SHORT).show()
+                sendSmsButton.text = "Uploaded"
             }
             .addOnFailureListener {
                 Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
