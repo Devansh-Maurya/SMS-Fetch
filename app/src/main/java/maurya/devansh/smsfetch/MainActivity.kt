@@ -16,7 +16,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import com.google.firebase.ml.naturallanguage.FirebaseNaturalLanguage
 import com.google.firebase.storage.FirebaseStorage
-import com.google.gson.GsonBuilder
 import com.gun0912.tedpermission.PermissionListener
 import com.gun0912.tedpermission.TedPermission
 import kotlinx.android.synthetic.main.activity_main.*
@@ -49,7 +48,7 @@ class MainActivity : AppCompatActivity() {
                     descriptionEnTV.text = getString(R.string.english_messages)
                     sendSmsButton.enable()
                     sendSmsButton.setOnClickListener {
-                        uploadSmsJson(enSmsList)
+                        uploadSmsCsv(enSmsList)
                         Toast.makeText(this@MainActivity, "Uploading messages",
                             Toast.LENGTH_SHORT).show()
                     }
@@ -98,14 +97,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("HardwareIds")
-    private fun uploadSmsJson(smsList: List<String>) {
+    private fun uploadSmsCsv(smsList: List<String>) {
+
+        val smsAsCsv = StringBuilder()
+
+        smsAsCsv.append("\"${smsList[0]}\"")
+        for(i in 1 until smsList.size) {
+            if (smsList[i].isBlank()) break
+            smsAsCsv.append("\n\"${smsList[i]}\"")
+        }
 
         val androidId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
 
-        val fileName = "sms$androidId.json"
+        val fileName = "sms$androidId.csv"
         val file = File(filesDir, fileName)
 
-        GsonBuilder().setPrettyPrinting().create().toJson(smsList, FileWriter(file))
+        val out = FileWriter(file)
+        out.write(smsAsCsv.toString().trim())
+        out.close()
+
         val stream = FileInputStream(file)
 
         val storageRef = storage.reference
