@@ -2,6 +2,7 @@ package maurya.devansh.smsfetch
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.ProgressDialog
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.net.Uri
@@ -25,6 +26,8 @@ import java.io.FileInputStream
 import java.io.FileWriter
 
 
+
+
 class MainActivity : AppCompatActivity() {
 
     private val storage = FirebaseStorage.getInstance()
@@ -33,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        sendSmsButton.disable()
+        //sendSmsButton.disable()
 
         getSmsReadPermission {
             val smsList = getSmsList()
@@ -46,12 +49,18 @@ class MainActivity : AppCompatActivity() {
                 if (it == smsList.size) {
                     numberEnTV.text = enSmsList.size.toString()
                     descriptionEnTV.text = getString(R.string.english_messages)
-                    sendSmsButton.enable()
-                    sendSmsButton.setOnClickListener {
-                        uploadSmsCsv(enSmsList)
-                        Toast.makeText(this@MainActivity, "Uploading messages",
-                            Toast.LENGTH_SHORT).show()
+                    val dialog = ProgressDialog(this@MainActivity)
+                    dialog.setMessage("Uploading messages")
+                    dialog.show()
+                    uploadSmsCsv(enSmsList) {
+                        dialog.dismiss()
                     }
+//                    sendSmsButton.enable()
+//                    sendSmsButton.setOnClickListener {
+//                        uploadSmsCsv(enSmsList)
+//                        Toast.makeText(this@MainActivity, "Uploading messages",
+//                            Toast.LENGTH_SHORT).show()
+//                    }
                     Log.i("SMS", enSmsList.toString())
                 }
             })
@@ -97,7 +106,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("HardwareIds")
-    private fun uploadSmsCsv(smsList: List<String>) {
+    private fun uploadSmsCsv(smsList: List<String>, onComplete: () -> Unit) {
 
         val smsAsCsv = StringBuilder()
         val smsSet = HashSet(smsList)
@@ -122,7 +131,7 @@ class MainActivity : AppCompatActivity() {
         smsJsonRef.putStream(stream)
             .addOnSuccessListener {
                 Toast.makeText(this, "Upload success", Toast.LENGTH_SHORT).show()
-                sendSmsButton.text = "Uploaded"
+                onComplete()
             }
             .addOnFailureListener {
                 Toast.makeText(this, it.toString(), Toast.LENGTH_SHORT).show()
